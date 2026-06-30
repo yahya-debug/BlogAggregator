@@ -6,10 +6,13 @@ import { and, eq } from "drizzle-orm";
 export type FeedFollow = typeof feed_follows.$inferSelect;
 
 export async function createFeedFollow(user_id: string, feed_id: string) {
-    const [inserted] = await db.insert(feed_follows).values({ user_id: user_id, feed_id: feed_id }).returning();
-    
+    const [inserted] = await db.insert(feed_follows)
+        .values({ user_id, feed_id })
+        .onConflictDoNothing()
+        .returning();
+
     if (!inserted)
-        throw new Error("Failed to insert");
+        throw new Error("Already following this feed");
 
     const [result] = await db.select({
          id: feed_follows.id,

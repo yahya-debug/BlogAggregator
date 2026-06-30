@@ -14,7 +14,6 @@ export type Config = {
 export async function setUser(name: string) {
     const content: Config = { dbUrl: `${process.env.CONNECTION}?sslmode=disable` || "", currentUserName: name };
     const data = JSON.stringify(content, null, 2);
-    console.log(data);
     await fs.promises.writeFile(getConfigPath(), data, 'utf-8');
 }
 

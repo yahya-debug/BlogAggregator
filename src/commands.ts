@@ -149,7 +149,6 @@ export class CommandHandler {
             throw new Error("follow command takes one argument: follow <feed url>");
 
         const feed: Feed = await getFeed(this.args[0]);
-        console.log(feed);
         if (!feed)
             throw new Error("Not a feed");
         const added = await createFeedFollow(this.user?.id as string, feed.id);
