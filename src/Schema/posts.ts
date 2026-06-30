@@ -1,15 +1,25 @@
-import { eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "./db.js";
-import { feeds, posts } from "./schema.js";
+import { feed_follows, posts } from "./schema.js";
 
-export async function createPost(title: string, url: string, feed: string, description?: string) {
-    const [result] = await db.insert(posts).
-        values({ title: title, url: url, feed_id: feed, description: description }).returning();
-    return result;
+export type Post = typeof posts.$inferSelect;
+
+export async function createPost(title: string, url: string, feed_id: string,description?: string, published_at?: Date) {
+    const [result] = await db
+        .insert(posts)
+        .values({ title, url, feed_id, description, published_at: published_at ?? new Date() })
+        .onConflictDoNothing()
+        .returning();
+    return result; // undefined on duplicate URL
 }
 
-export async function getPostsForUser(user_id: string, limit: number = 2) {
-    const result = await db.select().from(posts).innerJoin(feeds, eq(posts.feed_id, feeds.id)).
-        where(eq(feeds.user_id, user_id)).orderBy(sql`posts.published_at desc`).limit(limit);
-    return result;
+export async function getPostsForUser(user_id: string, limit: number = 2): Promise<Post[]> {
+    const result = await db
+        .select({ post: posts })
+        .from(posts)
+        .innerJoin(feed_follows, eq(posts.feed_id, feed_follows.feed_id))
+        .where(eq(feed_follows.user_id, user_id))
+        .orderBy(desc(posts.published_at))
+        .limit(limit);
+    return result.map(r => r.post);
 }

@@ -1,5 +1,6 @@
 import { readConfig, setUser } from "./config.js";
 import { scrapeFeeds } from "./feed.js";
+import { getPostsForUser } from "./Schema/posts.js";
 
 function formatDuration(ms: number): string {
     if (ms < 1000) return `${ms}ms`;
@@ -39,7 +40,7 @@ export class CommandHandler {
     }
 
     // commands that require a logged-in user
-    private static readonly PROTECTED = new Set(['addfeed', 'follow', 'following', 'unfollow']);
+    private static readonly PROTECTED = new Set(['addfeed', 'follow', 'following', 'unfollow', 'browse']);
 
     requireUser(): User {
         if (!this.user)
@@ -164,6 +165,13 @@ export class CommandHandler {
 
     async unfollow() {
         const response = await removeFeedFollow(this.user?.id as string, this.args[0]);
+    }
+
+    async browse() {
+        const limit = this.args[0] ? parseInt(this.args[0], 10) : 2;
+        const postsList = await getPostsForUser(this.user!.id, limit);
+        for (const post of postsList)
+            console.log(`\n${post.title}\n${post.url}\n${post.published_at?.toISOString()}`);
     }
 
     async execute() {

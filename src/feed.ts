@@ -1,6 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
+import { createPost } from "./Schema/posts.js";
 import { getNextFeedToFetch, markFeedFetched } from "./Schema/feeds.js";
-
 
 export type RSSFeed = {
   channel: {
@@ -17,6 +17,11 @@ type RSSItem = {
   description: string;
   pubDate: string;
 };
+
+function parsePubDate(pubDate: string): Date {
+    const d = new Date(pubDate);
+    return isNaN(d.getTime()) ? new Date() : d;
+}
 
 export async function fetchFeed(feedUrl: string) {
     const raw = await fetch(feedUrl, {
@@ -35,7 +40,7 @@ export async function fetchFeed(feedUrl: string) {
 
     let items: RSSItem[] = [];
     if (parsed.channel.item)
-        items = Array.isArray(parsed.channel.item) ? parsed.channel.item:[parsed.channel.item];
+        items = Array.isArray(parsed.channel.item) ? parsed.channel.item : [parsed.channel.item];
 
     items = items.filter(item => item.description && item.link && item.pubDate && item.title);
     parsed.channel.item = items;
@@ -47,6 +52,11 @@ export async function scrapeFeeds() {
     const feed = await fetchFeed(next.url);
     await markFeedFetched(next.url);
 
-    for (const item of feed.channel.item)
-        
+    console.log(`Fetching feed: ${feed.channel.title}`);
+
+    for (const item of feed.channel.item) {
+        const saved = await createPost(item.title, item.link, next.id, item.description, parsePubDate(item.pubDate));
+        if (saved)
+            console.log(`  Saved: ${item.title}`);
+    }
 }
